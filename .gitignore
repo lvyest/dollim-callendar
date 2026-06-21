@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build output
+.next/
+next-env.d.ts
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# generated (orval client + openapi artifact — regenerated from contracts)
+apps/web/src/lib/api/generated/
+packages/contracts/openapi.json
+
+# env
+.env
+.env*.local
+
+# misc
+.DS_Store
+*.log
+coverage/
+.turbo/
+playwright-report/
+test-results/
