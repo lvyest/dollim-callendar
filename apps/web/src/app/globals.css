@@ -1,0 +1,62 @@
+/* 앱 기본 폰트: 학교안심 둥근미소 (OFL). 로고/제목용: Ok단단체. (눈누 jsdelivr 웹폰트) */
+@font-face {
+  font-family: 'SchoolSafetyRoundedSmile';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-R.woff2')
+    format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SchoolSafetyRoundedSmile';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-B.woff2')
+    format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OkDandan';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2508-2@1.0/OkDanDan-Bold.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  @apply bg-appbg text-[#11161F] antialiased;
+}
+
+/* react-colorful — 피그마 스펙트럼+휴 슬라이더 느낌으로 */
+.react-colorful {
+  width: 100%;
+  height: 184px;
+}
+.react-colorful__saturation {
+  border-radius: 12px 12px 0 0;
+}
+.react-colorful__last-control {
+  height: 16px;
+  border-radius: 0 0 12px 12px;
+}
+.react-colorful__pointer {
+  width: 18px;
+  height: 18px;
+}
+
+/* 온보딩 슬라이드 등장 애니메이션 */
+@keyframes obUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes obPop {
+  0% { opacity: 0; transform: scale(0.7); }
+  60% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
