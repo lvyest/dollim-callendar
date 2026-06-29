@@ -40,6 +40,7 @@ export function GuestbookView({ meId }: { meId: string }) {
   const { data: members } = useGetMembers();
   const memberById = new Map((members ?? []).filter((m) => m.status === 'approved').map((m) => [m.id, m]));
 
+  const gbKey = getGetGuestbookQueryKey();
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,10 +48,20 @@ export function GuestbookView({ meId }: { meId: string }) {
   const patch = useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) =>
       customFetch({ url: `/guestbook/${id}`, method: 'PATCH', data: { content } }),
-    onSuccess: () => {
-      invalidate();
+    onMutate: async ({ id, content }) => {
+      await qc.cancelQueries({ queryKey: gbKey });
+      const prev = qc.getQueryData<GuestbookPost[]>(gbKey);
+      qc.setQueryData<GuestbookPost[]>(gbKey, (old) =>
+        old?.map((p) => (p.id === id ? { ...p, content } : p)),
+      );
+      setEditingId(null);
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(gbKey, ctx.prev);
       setEditingId(null);
     },
+    onSettled: invalidate,
   });
   const expanded = focused || text.length > 0;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,7 +86,6 @@ export function GuestbookView({ meId }: { meId: string }) {
       },
     },
   });
-  const gbKey = getGetGuestbookQueryKey();
   const like = usePostGuestbookIdLike({
     mutation: {
       // 낙관적 업데이트: 누르는 즉시 반영
