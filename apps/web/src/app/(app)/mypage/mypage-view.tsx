@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 
 import { LogoutButton } from '@/components/LogoutButton';
-import { SlidersIcon } from '@/components/icons';
+import { PencilIcon, SlidersIcon } from '@/components/icons';
 import { usePatchMe } from '@/lib/api/generated/auth/auth';
 import { customFetch } from '@/lib/api/http';
 import { createClient } from '@/lib/supabase/client';
@@ -27,7 +27,16 @@ export function MyPageView({ member }: { member: Profile }) {
   const [color, setColor] = useState(member.color);
   const [editingColor, setEditingColor] = useState(false);
   const [isSenior, setIsSenior] = useState(member.isSenior);
-  const patch = usePatchMe({ mutation: { onSuccess: () => router.refresh() } });
+  const [name, setName] = useState(member.name);
+  const [editingName, setEditingName] = useState(false);
+  const [pendingName, setPendingName] = useState<string | null>(null);
+  const displayName = pendingName ?? member.name;
+  const patch = usePatchMe({
+    mutation: {
+      onSuccess: () => router.refresh(),
+      onError: () => setPendingName(null),
+    },
+  });
   const withdraw = useMutation({
     mutationFn: () => customFetch({ url: '/me', method: 'DELETE' }),
     onSuccess: async () => {
@@ -52,9 +61,51 @@ export function MyPageView({ member }: { member: Profile }) {
             className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white"
             style={{ backgroundColor: color, boxShadow: isSenior ? 'inset 0 0 0 3px #E0A400' : undefined }}
           >
-            {initial(member.name)}
+            {initial(displayName)}
           </span>
-          <p className="mt-3 text-lg font-bold text-[#11161F]">{member.name}</p>
+          {editingName ? (
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={20}
+                className="w-32 rounded-xl border border-primary-400 px-3 py-1.5 text-center text-[17px] font-bold text-[#11161F] outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (name.trim() && name.trim() !== member.name) {
+                    setPendingName(name.trim());
+                    patch.mutate({ data: { name: name.trim() } });
+                  }
+                  setEditingName(false);
+                }}
+                disabled={!name.trim() || patch.isPending}
+                className="rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              >
+                저장
+              </button>
+              <button
+                type="button"
+                onClick={() => { setName(member.name); setEditingName(false); }}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-500"
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <div className="mt-3 flex items-center gap-1.5">
+              <p className="text-lg font-bold text-[#11161F]">{displayName}</p>
+              <button
+                type="button"
+                onClick={() => setEditingName(true)}
+                className="text-gray-400"
+                aria-label="닉네임 수정"
+              >
+                <PencilIcon className="h-4 w-4" />
+              </button>
+            </div>
+          )}
           <span className="mt-1.5 rounded-full bg-surface-blue px-2.5 py-1 text-xs font-bold text-primary-700">
             {member.generation}기 · {member.role === 'admin' ? '운영진' : '멤버'}
             {isSenior ? ' · 선배' : ''}
