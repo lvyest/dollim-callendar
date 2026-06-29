@@ -1,9 +1,11 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-import { HeartIcon, MessageIcon, TrashIcon } from '@/components/icons';
+import { HeartIcon, MessageIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import {
   getGetGuestbookQueryKey,
   useGetGuestbook,
@@ -38,7 +40,44 @@ export function GuestbookView({ meId }: { meId: string }) {
   const { data: members } = useGetMembers();
   const memberById = new Map((members ?? []).filter((m) => m.status === 'approved').map((m) => [m.id, m]));
 
+  const gbKey = getGetGuestbookQueryKey();
   const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const patch = useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      customFetch({ url: `/guestbook/${id}`, method: 'PATCH', data: { content } }),
+    onMutate: async ({ id, content }) => {
+      await qc.cancelQueries({ queryKey: gbKey });
+      const prev = qc.getQueryData<GuestbookPost[]>(gbKey);
+      qc.setQueryData<GuestbookPost[]>(gbKey, (old) =>
+        old?.map((p) => (p.id === id ? { ...p, content } : p)),
+      );
+      setEditingId(null);
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(gbKey, ctx.prev);
+      setEditingId(null);
+    },
+    onSettled: invalidate,
+  });
+  const expanded = focused || text.length > 0;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    if (text) el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = editTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [editingId]);
   const post = usePostGuestbook({
     mutation: {
       onSuccess: () => {
@@ -47,7 +86,6 @@ export function GuestbookView({ meId }: { meId: string }) {
       },
     },
   });
-  const gbKey = getGetGuestbookQueryKey();
   const like = usePostGuestbookIdLike({
     mutation: {
       // 낙관적 업데이트: 누르는 즉시 반영
@@ -93,21 +131,31 @@ export function GuestbookView({ meId }: { meId: string }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full bg-white py-2 pl-4 pr-2 shadow-soft">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="방명록 남기기…"
-            className="flex-1 text-sm outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => text.trim() && guard(post.mutate, { data: { content: text.trim() } })}
-            disabled={!text.trim() || post.isPending}
-            className="rounded-full bg-primary-500 px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50"
-          >
-            등록
-          </button>
+        <div className="rounded-2xl bg-white p-3.5 shadow-soft">
+          <div className={`flex ${expanded ? 'flex-col gap-2' : 'items-center gap-2'}`}>
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="방명록 남기기…"
+              rows={1}
+              className={`resize-none overflow-hidden text-sm leading-relaxed outline-none ${expanded ? 'w-full' : 'flex-1'}`}
+            />
+            <button
+              type="button"
+              onClick={() => text.trim() && guard(post.mutate, { data: { content: text.trim() } })}
+              disabled={!text.trim() || post.isPending}
+              className={`shrink-0 rounded-full bg-primary-500 px-4 py-2 text-[13px] font-bold text-white disabled:opacity-50 ${expanded ? 'self-end' : ''}`}
+            >
+              등록
+            </button>
+          </div>
         </div>
 
         {(posts ?? []).filter((p: GuestbookPost) => memberById.has(p.authorId)).map((p: GuestbookPost) => {
@@ -129,19 +177,65 @@ export function GuestbookView({ meId }: { meId: string }) {
                 </div>
                 <span className="text-[11px] text-gray-400">{rel(p.createdAt)}</span>
                 {p.authorId === meId && (
-                  <button
-                    type="button"
-                    aria-label="삭제"
-                    onClick={() => {
-                      if (confirm('이 방명록을 삭제할까요?')) del.mutate(p.id);
-                    }}
-                    className="text-gray-300 hover:text-danger"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label="수정"
+                      onClick={() => { setEditingId(p.id); setEditText(p.content); }}
+                      className="text-gray-300 hover:text-primary-400"
+                    >
+                      <PencilIcon className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="삭제"
+                      onClick={() => {
+                        if (confirm('이 방명록을 삭제할까요?')) del.mutate(p.id);
+                      }}
+                      className="text-gray-300 hover:text-danger"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
-              <p className="mt-2.5 whitespace-pre-wrap text-[13.5px] leading-relaxed text-[#384150]">{p.content}</p>
+              {editingId === p.id ? (
+                <div className="mt-2.5 space-y-2">
+                  <textarea
+                    ref={editTextareaRef}
+                    value={editText}
+                    onChange={(e) => {
+                      setEditText(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                    }}
+                    rows={1}
+                    className="w-full resize-none overflow-hidden rounded-xl border border-primary-300 px-3 py-2 text-sm leading-relaxed outline-none focus:border-primary-400"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="flex-1 rounded-xl border border-gray-200 py-2 text-xs font-bold text-gray-500"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!editText.trim() || patch.isPending}
+                      onClick={() => patch.mutate({ id: p.id, content: editText.trim() })}
+                      className="flex-[2] rounded-xl bg-primary-500 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2.5 text-[13.5px] leading-relaxed text-[#384150] [&_p]:mb-1 [&_p:last-child]:mb-0 [&_ul]:ml-4 [&_ul]:list-disc [&_ul]:space-y-0.5 [&_ol]:ml-4 [&_ol]:list-decimal [&_ol]:space-y-0.5 [&_strong]:font-bold [&_em]:italic [&_a]:text-primary-600 [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:text-gray-500 [&_code]:rounded [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_pre]:rounded-xl [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:text-xs [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-[13.5px] [&_h2]:font-bold [&_h3]:text-[13px] [&_h3]:font-bold [&_hr]:my-2 [&_hr]:border-gray-200 [&_del]:line-through [&_table]:w-full [&_table]:text-xs [&_th]:border [&_th]:border-gray-200 [&_th]:px-2 [&_th]:py-1 [&_th]:font-bold [&_td]:border [&_td]:border-gray-200 [&_td]:px-2 [&_td]:py-1">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.content}</ReactMarkdown>
+                </div>
+              )}
               <div className="mt-2.5">
                 <button
                   type="button"

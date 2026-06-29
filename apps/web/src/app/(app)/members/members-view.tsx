@@ -23,7 +23,14 @@ export function MembersView({ isAdmin, meId }: { isAdmin: boolean; meId: string 
 
   const list = members ?? [];
   const pending = list.filter((m) => m.status === 'pending');
-  const approved = list.filter((m) => m.status === 'approved');
+  const approved = list
+    .filter((m) => m.status === 'approved')
+    .sort((a, b) => {
+      if (a.id === meId) return -1;
+      if (b.id === meId) return 1;
+      if (b.generation !== a.generation) return b.generation - a.generation;
+      return a.name.localeCompare(b.name, 'ko');
+    });
   const rejected = list.filter((m) => m.status === 'rejected');
 
   return (
@@ -92,8 +99,8 @@ export function MembersView({ isAdmin, meId }: { isAdmin: boolean; meId: string 
           </div>
           <ul className="divide-y divide-gray-100">
             {approved.map((m) => (
-              <li key={m.id} className="relative flex items-center gap-3 py-2.5">
-                <Avatar member={m} />
+              <li key={m.id} className={`relative flex items-center gap-3 py-2.5 ${m.id === meId ? '-mx-2 rounded-xl bg-surface-blue px-2' : ''}`}>
+                <Avatar member={m} isMe={m.id === meId} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-[#11161F]">{m.name}</p>
                   <p className="text-[11px] text-gray-500">
@@ -193,10 +200,10 @@ export function MembersView({ isAdmin, meId }: { isAdmin: boolean; meId: string 
   );
 }
 
-function Avatar({ member }: { member: Member }) {
+function Avatar({ member, isMe = false }: { member: Member; isMe?: boolean }) {
   return (
     <span
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${isMe ? 'ring-2 ring-primary-400 ring-offset-1' : ''}`}
       style={{
         backgroundColor: member.color,
         boxShadow: member.isSenior ? 'inset 0 0 0 2px #E0A400' : undefined,
