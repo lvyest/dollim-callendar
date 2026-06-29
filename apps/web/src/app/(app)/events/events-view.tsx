@@ -47,7 +47,7 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
   const [dateStart, setDateStart] = useState(`${month}-01`);
   const [dateEnd, setDateEnd] = useState('');
   const [desc, setDesc] = useState('');
-  const [err, setErr] = useState('');
+  const [monthErrOpen, setMonthErrOpen] = useState(false);
 
   function resetForm() {
     setOpen(false);
@@ -55,7 +55,6 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
     setTitle('');
     setDesc('');
     setDateEnd('');
-    setErr('');
   }
 
   const post = usePostEvents({ mutation: { onSuccess: () => { invalidate(); resetForm(); } } });
@@ -76,7 +75,6 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
     setDateStart(`${month}-01`);
     setDateEnd('');
     setDesc('');
-    setErr('');
     setOpen(true);
   }
   function openEdit(e: Event) {
@@ -92,13 +90,11 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
 
   function submit() {
     if (!title.trim() || !dateStart) return;
-    // 지금 보고 있는 달의 일정만 등록 가능 (다른 달은 안내 후 차단)
     const outOfMonth = dateStart < monthStart || dateStart > monthLast || (dateEnd && (dateEnd < monthStart || dateEnd > monthLast));
     if (outOfMonth) {
-      setErr(`${monthLabel} 일정만 등록할 수 있어요. 날짜를 이 달 안으로 골라주세요.`);
+      setMonthErrOpen(true);
       return;
     }
-    setErr('');
     const base = {
       type,
       title: title.trim(),
@@ -113,6 +109,28 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
 
   return (
     <>
+      {monthErrOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => setMonthErrOpen(false)}
+        >
+          <div
+            className="w-full max-w-[320px] rounded-[20px] bg-white p-6 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-3xl">📅</p>
+            <p className="text-[15px] font-bold text-[#11161F]">이번 달 일정만 등록할 수 있어요</p>
+            <p className="mt-1.5 text-[12.5px] font-medium text-gray-500">{monthLabel} 안의 날짜로 선택해주세요</p>
+            <button
+              type="button"
+              onClick={() => setMonthErrOpen(false)}
+              className="mt-5 w-full rounded-xl bg-primary-500 py-3 text-sm font-bold text-white"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
       <main className="mx-auto min-h-dvh max-w-[400px] space-y-3 bg-appbg px-5 pb-28 pt-6">
         <header className="flex items-center gap-3">
           <span className="flex h-[38px] w-[38px] items-center justify-center rounded-xl bg-accent-50 text-senior">
@@ -216,11 +234,10 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
             </div>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary-400" />
             <div className="flex gap-2">
-              <input type="date" min={monthStart} max={monthLast} value={dateStart} onChange={(e) => { setDateStart(e.target.value); setErr(''); }} className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none" />
-              <input type="date" min={monthStart} max={monthLast} value={dateEnd} onChange={(e) => { setDateEnd(e.target.value); setErr(''); }} className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none" />
+              <input type="date" min={monthStart} max={monthLast} value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none" />
+              <input type="date" min={monthStart} max={monthLast} value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none" />
             </div>
             <p className="px-1 text-[11px] font-medium text-gray-400">{monthLabel} 일정만 등록할 수 있어요</p>
-            {err && <p className="px-1 text-[12px] font-medium text-danger">{err}</p>}
             <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="설명 (선택)" className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary-400" />
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={resetForm} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-bold text-gray-500">
