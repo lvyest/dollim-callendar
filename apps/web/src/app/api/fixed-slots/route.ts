@@ -3,7 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { handle, ok } from '@/lib/api/respond';
-import { requireAdmin, requireApproved } from '@/lib/auth';
+import { requireApproved } from '@/lib/auth';
 
 const SlotInput = z.object({
   weekday: z.number().int().min(0).max(6),
@@ -32,10 +32,10 @@ export async function GET(req: Request) {
   });
 }
 
-// 그 달의 고정 연습실 슬롯을 통째로 교체 (운영진).
+// 그 달의 고정 연습실 슬롯을 통째로 교체 (승인된 멤버 누구나).
 export async function PUT(req: Request) {
   return handle(async () => {
-    const admin = await requireAdmin();
+    const admin = await requireApproved();
     const { month, slots } = PutBody.parse(await req.json());
     const db = getDb();
     await db.delete(fixedSlots).where(eq(fixedSlots.yearMonth, month));

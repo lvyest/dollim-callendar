@@ -299,30 +299,29 @@ export function CalendarView({ isAdmin, meId }: { isAdmin: boolean; meId: string
         <div className="mb-3 rounded-[16px] bg-white p-3.5 shadow-soft">
           <div className="flex items-center">
             <span className="flex items-center gap-1.5 text-[13px] font-bold text-[#11161F]">
-              <PinIcon className="h-[15px] w-[15px] text-primary-500" /> 고정 연습실
+              <PinIcon className="h-[15px] w-[15px] text-primary-500" /> 정기 연습 일정
             </span>
-            <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-gray-400">
-              이번 달 기준
-              {isAdmin && (
-                <button type="button" onClick={() => setEditOpen(true)} aria-label="고정 연습실 편집" className="text-gray-400">
-                  <PencilIcon className="h-[14px] w-[14px]" />
-                </button>
-              )}
+            <span className="ml-auto flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-gray-400">이번 달 기준</span>
+              <button type="button" onClick={() => setEditOpen(true)} aria-label="고정 연습실 편집" className="text-gray-400">
+                <PencilIcon className="h-[14px] w-[14px]" />
+              </button>
             </span>
           </div>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {slotList.length ? (
-              slotList.map((s) => (
-                <span key={s.id} className="rounded-lg bg-surface-blue px-2.5 py-1.5 text-[11px] font-medium text-primary-700">
-                  {WEEKDAYS[s.weekday]} {s.room} {hhmm(s.startTime)}~{hhmm(s.endTime)}
-                </span>
-              ))
-            ) : (
-              <span className="text-[11px] text-gray-400">
-                설정된 고정 연습실이 없어요{isAdmin ? ' · 연필을 눌러 설정하세요' : ''}
-              </span>
-            )}
-          </div>
+          {slotList.length ? (
+            <>
+              <p className="mt-2 text-[11px] text-gray-400">매주 이 요일에 연습이 잡혀요. 추가·변동은 날짜를 눌러 직접 넣을 수 있어요.</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {slotList.map((s) => (
+                  <span key={s.id} className="rounded-lg bg-surface-blue px-2.5 py-1.5 text-[11px] font-medium text-primary-700">
+                    {WEEKDAYS[s.weekday]} {s.room} {hhmm(s.startTime)}~{hhmm(s.endTime)}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="mt-2 text-[11px] text-gray-400">아직 설정된 고정 연습실이 없어요. 우측 상단 연필 아이콘을 눌러 추가해요.</p>
+          )}
         </div>
         )}
 
@@ -368,11 +367,11 @@ export function CalendarView({ isAdmin, meId }: { isAdmin: boolean; meId: string
                   } ${hasSenior ? 'ring-2 ring-[#E0A400]' : ''} ${isSel ? 'outline outline-2 -outline-offset-[3px] outline-primary-400' : ''}`}
                 >
                   <span className={`text-[13.5px] ${numTone}`}>{d}</span>
-                  <span className="flex h-[3px] items-center gap-0.5">
+                  <span className="flex flex-col items-center gap-[2px]">
+                    {hasEvent && <span className="h-[3px] w-3 rounded-full bg-accent-300" />}
                     {hasPractice && (
                       <span className={`h-[3px] w-[3px] rounded-full ${isToday ? 'bg-white' : 'bg-primary-500'}`} />
                     )}
-                    {hasEvent && <span className="h-[3px] w-3 rounded-full bg-accent-300" />}
                   </span>
                 </button>
               );
@@ -442,7 +441,7 @@ export function CalendarView({ isAdmin, meId }: { isAdmin: boolean; meId: string
 
           {addOpen ? (
             <section className="space-y-2 rounded-[18px] bg-white p-4 shadow-soft">
-              <p className="text-[13px] font-bold text-gray-600">{selLabel} 연습 추가</p>
+              <p className="text-[13px] font-bold text-[#11161F]">{selLabel} 연습 추가</p>
               {matchSlot && (
                 <p className="rounded-lg bg-surface-blue px-3 py-2 text-[11px] font-medium text-primary-700">
                   📍 이 요일 고정 연습실({matchSlot.room} {hhmm(matchSlot.startTime)}~{hhmm(matchSlot.endTime)})로 채웠어요 · 추가 연습이면 직접 바꾸세요
@@ -500,9 +499,9 @@ export function CalendarView({ isAdmin, meId }: { isAdmin: boolean; meId: string
             <button
               type="button"
               onClick={openAdd}
-              className="w-full rounded-2xl border-2 border-dashed border-gray-200 py-3 text-sm font-bold text-gray-400"
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-primary-200 bg-surface-blue py-3.5 text-sm font-bold text-primary-600"
             >
-              + {selLabel.split(' (')[0]} 연습 추가
+              <span className="text-base leading-none">+</span> {selLabel.split(' (')[0]} 연습 추가
             </button>
           )}
         </div>
