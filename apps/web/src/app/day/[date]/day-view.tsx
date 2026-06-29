@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -37,10 +37,10 @@ function fmtDate(date: string) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${wd})`;
 }
 
-function Avatar({ member, size = 32 }: { member: Pick<Member, 'name' | 'color' | 'isSenior'>; size?: number }) {
+function Avatar({ member, size = 32, isMe = false }: { member: Pick<Member, 'name' | 'color' | 'isSenior'>; size?: number; isMe?: boolean }) {
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold text-white ${isMe ? 'ring-2 ring-primary-400 ring-offset-1' : ''}`}
       style={{
         width: size,
         height: size,
@@ -146,6 +146,16 @@ export function DayView({
   const st = (id: string): AttendanceStatus => attStatus.get(id) ?? 'undecided';
   const nonSenior = approved.filter((m) => !m.isSenior);
   const seniors = approved.filter((m) => m.isSenior);
+
+  const statusRank = (s: AttendanceStatus) => (s === 'yes' ? 0 : s === 'no' || s === 'partial' ? 1 : 2);
+  const sortedMembers = [...approved].sort((a, b) => {
+    if (a.id === meId) return -1;
+    if (b.id === meId) return 1;
+    const dr = statusRank(st(a.id)) - statusRank(st(b.id));
+    if (dr !== 0) return dr;
+    if (b.generation !== a.generation) return b.generation - a.generation;
+    return a.name.localeCompare(b.name, 'ko');
+  });
   const cnt = {
     yes: nonSenior.filter((m) => st(m.id) === 'yes').length,
     partial: nonSenior.filter((m) => st(m.id) === 'partial').length,
@@ -239,15 +249,16 @@ export function DayView({
               </p>
             </div>
             <ul className="divide-y divide-gray-100">
-              {[...nonSenior, ...seniors].map((m) => {
+              {sortedMembers.map((m) => {
                 const s = st(m.id);
                 const r = attReason.get(m.id);
+                const isMe = m.id === meId;
                 return (
-                  <li key={m.id} className="flex items-center gap-3 py-2.5">
-                    <Avatar member={m} />
+                  <li key={m.id} className={`flex items-center gap-3 py-2.5 ${isMe ? '-mx-2 rounded-xl bg-surface-blue px-2' : ''}`}>
+                    <Avatar member={m} isMe={isMe} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[#11161F]">{m.name}</p>
-                      {r && <p className="truncate text-[11px] text-gray-400">“{r}”</p>}
+                      {r && <p className="truncate text-[11px] text-gray-400">"{r}"</p>}
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS[s].chip}`}>
                       {STATUS[s].label}
