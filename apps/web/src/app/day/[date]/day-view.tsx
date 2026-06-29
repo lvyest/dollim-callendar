@@ -258,7 +258,7 @@ export function DayView({
                     <Avatar member={m} isMe={isMe} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[#11161F]">{m.name}</p>
-                      {r && <p className="truncate text-[11px] text-gray-400">"{r}"</p>}
+                      {r && <p className="truncate text-[11px] text-gray-400">&quot;{r}&quot;</p>}
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${STATUS[s].chip}`}>
                       {STATUS[s].label}
