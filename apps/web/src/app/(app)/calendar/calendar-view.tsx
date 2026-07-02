@@ -675,6 +675,7 @@ function SessionCard({
   onChanged: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const { data: atts } = useQuery({
     queryKey: ['attendances', session.id],
@@ -682,7 +683,7 @@ function SessionCard({
   });
   const del = useMutation({
     mutationFn: () => customFetch({ url: `/sessions/${session.id}`, method: 'DELETE' }),
-    onSuccess: onChanged,
+    onSuccess: () => { setConfirmDelete(false); onChanged(); },
   });
 
   const participants = (atts ?? [])
@@ -761,10 +762,9 @@ function SessionCard({
             </button>
             <button
               type="button"
-              disabled={del.isPending}
               onClick={() => {
                 setMenuOpen(false);
-                if (confirm('이 연습을 삭제할까요? 참여·기록도 함께 삭제됩니다.')) del.mutate();
+                setConfirmDelete(true);
               }}
               className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[13.5px] font-medium text-danger hover:bg-gray-50"
             >
@@ -783,6 +783,32 @@ function SessionCard({
             setEditing(false);
           }}
         />
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5" onClick={() => setConfirmDelete(false)}>
+          <div className="w-full max-w-[320px] rounded-[20px] bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[16px] font-bold text-[#11161F]">연습 삭제</p>
+            <p className="mt-1.5 text-[13px] text-gray-500">이 연습을 삭제할까요? 참여·기록도 함께 삭제됩니다.</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-bold text-gray-500"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={del.isPending}
+                onClick={() => del.mutate()}
+                className="flex-1 rounded-xl bg-danger py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {del.isPending ? '삭제 중…' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

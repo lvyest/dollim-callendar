@@ -25,3 +25,6 @@ coverage/
 .turbo/
 playwright-report/
 test-results/
+
+# blog (로컬 개발 블로그 초안 — 추적 제외)
+blog/

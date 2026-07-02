@@ -144,6 +144,12 @@ export function EventsView({ isAdmin, meId }: { isAdmin: boolean; meId: string }
           </div>
         </header>
 
+        {(events ?? []).length === 0 && !open && (
+          <p className="rounded-2xl bg-white p-5 text-center text-sm text-gray-400 shadow-soft">
+            이번 달에 등록된 특이일정이 없어요
+          </p>
+        )}
+
         {(events ?? []).map((e: Event) => {
           const c = CAT[e.type];
           const canManage = isAdmin || e.createdBy === meId;
